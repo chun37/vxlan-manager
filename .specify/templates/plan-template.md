@@ -31,7 +31,33 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+This feature MUST comply with `.specify/memory/constitution.md` principles:
+
+### Core Principles Compliance
+
+- [ ] **非同期処理優先**: すべてのI/O処理(DB、ネットワーク、ping)が非同期実装されているか?
+- [ ] **リアルタイム状態反映**: 状態変化がWebSocketで即座に通知される設計か?
+- [ ] **堅牢な監視**: Exponential Backoff (60s→120s→240s→接続不可判定) が実装されているか?
+- [ ] **データ整合性**: トランザクション管理とロールバック処理が適切か?
+- [ ] **レスポンシブUI**: PC/スマホ両対応が考慮されているか?
+- [ ] **セキュリティ**: 入力検証(IP/MAC)、SQLインジェクション対策、XSS対策、レート制限が実装されているか?
+
+### Technical Standards Compliance
+
+- [ ] **技術スタック**: Python 3.11+, FastAPI, asyncio, asyncpg, PostgreSQL 14+に準拠しているか?
+- [ ] **データベーススキーマ**: spec.md第4章のスキーマ(machines, ping_status, failure_logs)に従っているか?
+- [ ] **API契約**: spec.md第5章のエンドポイント契約(PUT/GET/DELETE, WebSocket)を遵守しているか?
+
+### Testing Standards Compliance
+
+- [ ] **テストカバレッジ**: pytest, pytest-asyncio, FastAPI TestClientを使用しているか?
+- [ ] **統合テスト**: WebSocket通信、Ping監視E2E、DB連携のテストが含まれているか?
+
+### Performance Requirements Compliance
+
+- [ ] **スケーラビリティ**: 1000台同時監視、100並列ping、WebSocket遅延<1秒、DBクエリ<100msを満たせるか?
+
+**Complexity Justification Required**: 上記のいずれかに違反する場合、Complexity Trackingセクションで正当化が必要
 
 ## Project Structure
 

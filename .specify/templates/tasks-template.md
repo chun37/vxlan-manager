@@ -59,12 +59,18 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
+- [ ] T004 Setup database schema and migrations framework (PostgreSQL with asyncpg)
+- [ ] T005 [P] Configure async database connection pool and transaction management
+- [ ] T006 [P] Setup API routing and middleware structure (FastAPI with async endpoints)
 - [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
+- [ ] T008 Configure error handling and logging infrastructure (async-compatible)
 - [ ] T009 Setup environment configuration management
+- [ ] T010 [P] Implement input validation framework (IP/MAC address validators)
+- [ ] T011 [P] Setup WebSocket infrastructure for real-time updates
+- [ ] T012 Configure rate limiting middleware (per-IP and global)
+- [ ] T013 Setup XSS protection and HTML escaping utilities
+
+**Constitution Compliance Check**: すべてのタスクが非同期処理、セキュリティ、データ整合性の原則に準拠していることを確認
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

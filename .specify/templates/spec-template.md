@@ -100,6 +100,33 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+### Non-Functional Requirements *(mandatory - constitution compliance)*
+
+<!--
+  These requirements ensure compliance with `.specify/memory/constitution.md`.
+  ALL features must address these areas.
+-->
+
+#### Security Requirements
+- **NFR-SEC-001**: Input validation MUST be implemented for all user inputs
+- **NFR-SEC-002**: SQL injection protection MUST use parameterized queries
+- **NFR-SEC-003**: XSS protection MUST escape all HTML output
+- **NFR-SEC-004**: Rate limiting MUST be enforced [specify limits]
+
+#### Performance Requirements
+- **NFR-PERF-001**: Response time MUST be [specify target, e.g., <200ms]
+- **NFR-PERF-002**: System MUST handle [specify load, e.g., 1000 concurrent requests]
+- **NFR-PERF-003**: Database queries MUST execute in [specify target, e.g., <100ms]
+
+#### Architecture Requirements
+- **NFR-ARCH-001**: All I/O operations MUST be implemented asynchronously (asyncio)
+- **NFR-ARCH-002**: Real-time updates MUST use WebSocket (not polling)
+- **NFR-ARCH-003**: All database operations MUST be transactional with proper rollback
+
+#### UI/UX Requirements
+- **NFR-UI-001**: UI MUST be responsive (desktop, tablet, mobile)
+- **NFR-UI-002**: UI MUST be accessible without horizontal scrolling on mobile
+
 ## Success Criteria *(mandatory)*
 
 <!--

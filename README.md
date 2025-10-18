@@ -13,7 +13,7 @@ VXLANネットワーク内のマシンを自動登録・監視し、接続状態
 ## アーキテクチャ
 
 - **Backend**: FastAPI + Python 3.11+ + asyncpg + PostgreSQL 14+
-- **Frontend**: HTML/JavaScript + Bootstrap 5
+- **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
 - **Monitoring**: icmplib (非同期ICMP ping)
 - **Real-time**: WebSocket通信
 
@@ -96,7 +96,27 @@ export VXLAN_MANAGER_URL="http://192.168.100.1:8000"
 
 ## 開発
 
-### テスト
+### フロントエンド開発
+
+```bash
+cd frontend
+
+# 依存パッケージのインストール
+npm install
+
+# 開発サーバーの起動
+npm run dev
+
+# TypeScriptチェック
+npx tsc --noEmit
+
+# プロダクションビルド
+npm run build
+```
+
+詳細は [frontend/README.md](frontend/README.md) を参照。
+
+### バックエンドテスト
 
 ```bash
 cd backend

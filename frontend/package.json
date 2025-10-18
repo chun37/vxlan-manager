@@ -1,17 +1,25 @@
 {
   "name": "vxlan-manager-frontend",
-  "version": "1.0.0",
-  "description": "VXLANマシン管理システム - フロントエンド",
-  "main": "src/index.html",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "python3 -m http.server 3000 --directory src",
-    "test:e2e": "echo 'E2E tests not implemented yet' && exit 0"
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint"
   },
-  "keywords": ["vxlan", "machine-manager", "monitoring"],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "bootstrap": "^5.3.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "next": "^15.0.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "^5",
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8",
+    "autoprefixer": "^10.0.1"
+  }
 }

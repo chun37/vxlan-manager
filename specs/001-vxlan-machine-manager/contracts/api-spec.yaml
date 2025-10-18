@@ -1,0 +1,365 @@
+openapi: 3.0.3
+info:
+  title: VXLAN Machine Manager API
+  description: |
+    VXLANネットワーク内のマシンを自動登録・監視し、接続状態をリアルタイムで管理するシステムのAPI仕様。
+
+    **主要機能**:
+    - マシンの自動登録(Upsert操作)
+    - マシン一覧取得(ステータスフィルタ対応)
+    - マシン削除
+    - WebSocketによるリアルタイム状態更新通知
+
+    **認証**: 不要(VXLANネットワーク内限定アクセス想定)
+  version: 1.0.0
+  contact:
+    name: VXLAN Manager Development Team
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: http://{vxlan_server_ip}:8000
+    description: Production VXLAN server
+    variables:
+      vxlan_server_ip:
+        default: "192.168.100.1"
+        description: VXLANネットワーク内のサーバーIPアドレス
+
+tags:
+  - name: machines
+    description: マシン管理操作
+  - name: websocket
+    description: リアルタイム通知
+
+paths:
+  /api/machines/{ip_address}:
+    put:
+      tags:
+        - machines
+      summary: マシン登録・更新(Upsert)
+      description: |
+        IPアドレスをキーとしてマシンを登録または更新します。
+        - 新規IPアドレス: 201 Createdで新規登録
+        - 既存IPアドレス: 200 OKで情報更新(ホスト名、MACアドレス、拡張データ)
+      operationId: upsertMachine
+      parameters:
+        - name: ip_address
+          in: path
+          required: true
+          description: マシンのIPアドレス(IPv4/IPv6)
+          schema:
+            type: string
+            format: ipv4
+            example: "192.168.100.10"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MachineUpsertRequest'
+      responses:
+        '200':
+          description: 既存マシンの情報が更新されました
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineResponse'
+        '201':
+          description: 新規マシンが登録されました
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineResponse'
+        '400':
+          description: 不正なリクエスト(IPアドレス形式エラー、MACアドレス形式エラーなど)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: レート制限超過(同一IPから短時間に多数のリクエスト)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: サービス利用不可(最大登録数1000台に達した場合)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/machines:
+    get:
+      tags:
+        - machines
+      summary: マシン一覧取得
+      description: |
+        登録されているすべてのマシンの一覧を取得します。
+        ステータスフィルタ、ページネーション対応。
+      operationId: listMachines
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: ステータスでフィルタ('active'または'unreachable')
+          schema:
+            type: string
+            enum: [active, unreachable]
+            example: active
+        - name: limit
+          in: query
+          required: false
+          description: 取得件数上限(デフォルト: 100, 最大: 1000)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          description: スキップ件数(ページネーション用)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: マシン一覧の取得に成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineListResponse'
+        '400':
+          description: 不正なクエリパラメータ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/machines/{machine_id}:
+    delete:
+      tags:
+        - machines
+      summary: マシン削除
+      description: |
+        指定されたマシンを削除します。
+        削除前の情報はfailure_logsに記録されます(接続不可の場合のみ)。
+        関連するping_statusレコードはカスケード削除されます。
+      operationId: deleteMachine
+      parameters:
+        - name: machine_id
+          in: path
+          required: true
+          description: マシンID(数値)
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '204':
+          description: マシンが正常に削除されました
+        '404':
+          description: 指定されたマシンIDが存在しません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ws/status:
+    get:
+      tags:
+        - websocket
+      summary: リアルタイム状態更新WebSocket
+      description: |
+        WebSocket接続を確立し、マシンの状態変化をリアルタイムで受信します。
+
+        **接続フロー**:
+        1. クライアントがWebSocket接続を開始
+        2. サーバーが接続確認メッセージを送信
+        3. マシンの状態が変化するたびにサーバーがstatus_updateメッセージをプッシュ
+        4. クライアントが切断またはタイムアウト時に接続終了
+
+        **メッセージ形式**: JSON
+        **プロトコル**: ws:// (開発環境) または wss:// (本番環境)
+      responses:
+        '101':
+          description: WebSocket接続にアップグレード
+        '400':
+          description: WebSocket接続エラー
+
+components:
+  schemas:
+    MachineUpsertRequest:
+      type: object
+      required:
+        - hostname
+        - mac_address
+      properties:
+        hostname:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: マシンのホスト名
+          example: "server01"
+        mac_address:
+          type: string
+          pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+          description: マシンのMACアドレス(コロンまたはハイフン区切り)
+          example: "00:11:22:33:44:55"
+        extra_data:
+          type: object
+          nullable: true
+          description: 将来の拡張用フリーフォーマットJSONデータ
+          example: {"location": "rack-a-01", "os": "Ubuntu 22.04"}
+
+    MachineResponse:
+      type: object
+      required:
+        - id
+        - hostname
+        - ip_address
+        - mac_address
+        - status
+        - last_seen
+        - registered_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: マシンID
+          example: 1
+        hostname:
+          type: string
+          description: ホスト名
+          example: "server01"
+        ip_address:
+          type: string
+          format: ipv4
+          description: IPアドレス
+          example: "192.168.100.10"
+        mac_address:
+          type: string
+          description: MACアドレス
+          example: "00:11:22:33:44:55"
+        status:
+          type: string
+          enum: [active, unreachable]
+          description: 接続状態
+          example: "active"
+        last_seen:
+          type: string
+          format: date-time
+          description: 最後に確認された日時(ISO 8601)
+          example: "2024-01-01T00:00:00Z"
+        registered_at:
+          type: string
+          format: date-time
+          description: 登録日時(ISO 8601)
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 最終更新日時(ISO 8601)
+          example: "2024-01-01T00:00:00Z"
+        extra_data:
+          type: object
+          nullable: true
+          description: 拡張データ
+          example: {"location": "rack-a-01"}
+        is_alive:
+          type: boolean
+          nullable: true
+          description: 最新のping結果(PingStatusから取得)
+          example: true
+        response_time:
+          type: number
+          format: float
+          nullable: true
+          description: 最新のping応答時間(ミリ秒)
+          example: 1.23
+
+    MachineListResponse:
+      type: object
+      required:
+        - machines
+        - total
+        - limit
+        - offset
+      properties:
+        machines:
+          type: array
+          items:
+            $ref: '#/components/schemas/MachineResponse'
+          description: マシンのリスト
+        total:
+          type: integer
+          description: 全体の件数(フィルタ適用後)
+          example: 95
+        limit:
+          type: integer
+          description: 取得件数上限
+          example: 100
+        offset:
+          type: integer
+          description: スキップ件数
+          example: 0
+
+    WebSocketStatusUpdate:
+      type: object
+      required:
+        - type
+        - machine_id
+        - status
+        - is_alive
+        - last_seen
+      properties:
+        type:
+          type: string
+          enum: [status_update]
+          description: メッセージタイプ
+          example: "status_update"
+        machine_id:
+          type: integer
+          description: 状態が変化したマシンのID
+          example: 1
+        status:
+          type: string
+          enum: [active, unreachable]
+          description: 新しい接続状態
+          example: "unreachable"
+        is_alive:
+          type: boolean
+          description: Ping結果(true: 成功, false: 失敗)
+          example: false
+        response_time:
+          type: number
+          format: float
+          nullable: true
+          description: Ping応答時間(ミリ秒)、失敗時はnull
+          example: null
+        last_seen:
+          type: string
+          format: date-time
+          description: 確認日時(ISO 8601)
+          example: "2024-01-01T00:05:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: エラーコード
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: エラーメッセージ(人間が読める形式)
+          example: "Invalid MAC address format"
+        details:
+          type: object
+          nullable: true
+          description: 詳細なエラー情報(バリデーションエラーのフィールド情報など)
+          example: {"field": "mac_address", "constraint": "pattern"}

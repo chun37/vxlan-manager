@@ -1,0 +1,159 @@
+/* VXLAN Machine Manager - Main Styles */
+
+:root {
+    --status-active: #28a745;
+    --status-unreachable: #dc3545;
+    --status-unknown: #6c757d;
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-active {
+    background-color: var(--status-active);
+}
+
+.status-unreachable {
+    background-color: var(--status-unreachable);
+    opacity: 0.6;
+}
+
+.status-unknown {
+    background-color: var(--status-unknown);
+}
+
+/* WebSocket connection status */
+#connectionStatus .badge {
+    font-size: 0.9rem;
+}
+
+.badge.bg-success {
+    background-color: var(--status-active) !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--status-unreachable) !important;
+}
+
+/* Machine table */
+.machine-table {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.machine-table th {
+    background-color: #e9ecef;
+    font-weight: 600;
+}
+
+.machine-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.machine-table tbody tr:hover {
+    background-color: #f1f3f5;
+}
+
+.machine-table tbody tr.status-changed {
+    animation: highlight 1s ease-in-out;
+}
+
+@keyframes highlight {
+    0%, 100% {
+        background-color: white;
+    }
+    50% {
+        background-color: #fff3cd;
+    }
+}
+
+/* Mobile responsive - Card layout */
+@media (max-width: 767px) {
+    .machine-table {
+        display: none;
+    }
+
+    .machine-cards {
+        display: block;
+    }
+
+    .machine-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+
+    .machine-card .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .machine-card .card-body {
+        font-size: 0.9rem;
+    }
+
+    .machine-card .card-body div {
+        margin-bottom: 8px;
+    }
+
+    .machine-card .card-body strong {
+        display: inline-block;
+        width: 120px;
+    }
+}
+
+/* Desktop - Hide card layout */
+@media (min-width: 768px) {
+    .machine-cards {
+        display: none;
+    }
+
+    .machine-table {
+        display: table;
+    }
+}
+
+/* Delete button */
+.btn-delete {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.75rem;
+}
+
+/* Loading spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}

@@ -1,0 +1,17 @@
+{
+  "name": "vxlan-manager-frontend",
+  "version": "1.0.0",
+  "description": "VXLANマシン管理システム - フロントエンド",
+  "main": "src/index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 3000 --directory src",
+    "test:e2e": "echo 'E2E tests not implemented yet' && exit 0"
+  },
+  "keywords": ["vxlan", "machine-manager", "monitoring"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bootstrap": "^5.3.0"
+  },
+  "devDependencies": {}
+}

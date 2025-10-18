@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VXLAN Machine Manager - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">VXLAN Machine Manager</span>
+            <span class="navbar-text" id="connectionStatus">
+                <span class="badge bg-secondary">接続中...</span>
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row mb-3">
+            <div class="col">
+                <h4>マシン一覧</h4>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="statusFilter" id="filterAll" value="" checked>
+                    <label class="btn btn-outline-primary" for="filterAll">すべて</label>
+
+                    <input type="radio" class="btn-check" name="statusFilter" id="filterActive" value="active">
+                    <label class="btn btn-outline-success" for="filterActive">接続中</label>
+
+                    <input type="radio" class="btn-check" name="statusFilter" id="filterUnreachable" value="unreachable">
+                    <label class="btn btn-outline-danger" for="filterUnreachable">接続不可</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="machineListContainer">
+            <div class="spinner-container">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">読み込み中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        import { getMachines } from '../services/api.js';
+        import { renderMachineTable } from '../components/MachineList.js';
+        import { renderMachineCards } from '../components/MachineCard.js';
+        import wsClient from '../services/websocket.js';
+
+        let machines = [];
+        let currentFilter = '';
+        let autoRefreshInterval = null;
+
+        /**
+         * Load machines from API
+         */
+        async function loadMachines() {
+            try {
+                const params = {};
+                if (currentFilter) {
+                    params.status = currentFilter;
+                }
+
+                const response = await getMachines(params);
+                machines = response.machines;
+                renderMachines();
+            } catch (error) {
+                console.error('Failed to load machines:', error);
+                document.getElementById('machineListContainer').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        マシン一覧の読み込みに失敗しました: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Render machines in both table and card layouts
+         */
+        function renderMachines() {
+            const container = document.getElementById('machineListContainer');
+
+            // Render both layouts (CSS will show/hide based on screen size)
+            const tableHtml = renderMachineTable(machines, onMachineDeleted);
+            const cardsHtml = renderMachineCards(machines, onMachineDeleted);
+
+            container.innerHTML = tableHtml + cardsHtml;
+        }
+
+        /**
+         * Handle machine deletion
+         */
+        function onMachineDeleted(machineId) {
+            // Remove machine from list
+            machines = machines.filter(m => m.id !== machineId);
+            renderMachines();
+        }
+
+        /**
+         * Handle WebSocket status update
+         */
+        function handleStatusUpdate(data) {
+            console.log('Status update received:', data);
+
+            // Find and update machine in list
+            const machine = machines.find(m => m.id === data.machine_id);
+            if (machine) {
+                machine.status = data.status;
+                machine.is_alive = data.is_alive;
+                machine.response_time = data.response_time;
+                machine.last_seen = data.last_seen;
+
+                // Re-render with highlight animation
+                renderMachines();
+
+                // Add highlight animation to changed row
+                const row = document.querySelector(`tr[data-machine-id="${data.machine_id}"]`);
+                if (row) {
+                    row.classList.add('status-changed');
+                    setTimeout(() => row.classList.remove('status-changed'), 1000);
+                }
+            }
+        }
+
+        /**
+         * Update connection status indicator
+         */
+        function updateConnectionStatus(isConnected) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (isConnected) {
+                statusElement.innerHTML = '<span class="badge bg-success">接続中</span>';
+            } else {
+                statusElement.innerHTML = '<span class="badge bg-danger">切断</span>';
+            }
+        }
+
+        /**
+         * Setup filter buttons
+         */
+        function setupFilters() {
+            const filterButtons = document.querySelectorAll('input[name="statusFilter"]');
+            filterButtons.forEach(button => {
+                button.addEventListener('change', (e) => {
+                    currentFilter = e.target.value;
+                    loadMachines();
+                });
+            });
+        }
+
+        /**
+         * Setup auto-refresh (fallback for WebSocket)
+         */
+        function setupAutoRefresh() {
+            // Refresh every 60 seconds
+            autoRefreshInterval = setInterval(() => {
+                console.log('Auto-refreshing machine list...');
+                loadMachines();
+            }, 60000);
+        }
+
+        /**
+         * Setup WebSocket connection
+         */
+        function setupWebSocket() {
+            wsClient.on('open', () => {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+            });
+
+            wsClient.on('close', () => {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+            });
+
+            wsClient.on('status_update', handleStatusUpdate);
+
+            wsClient.connect();
+        }
+
+        /**
+         * Initialize dashboard
+         */
+        async function init() {
+            setupFilters();
+            await loadMachines();
+            setupAutoRefresh();
+            setupWebSocket();
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+</html>

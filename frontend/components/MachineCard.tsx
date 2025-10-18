@@ -11,7 +11,7 @@ interface MachineCardProps {
 export function MachineCard({ machines, onDelete }: MachineCardProps) {
   if (machines.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-12 text-center">
+      <div className="md:hidden bg-white rounded-lg shadow p-12 text-center">
         <svg
           className="mx-auto h-16 w-16 text-gray-400 mb-4"
           fill="none"

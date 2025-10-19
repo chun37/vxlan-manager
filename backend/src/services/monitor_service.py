@@ -153,6 +153,20 @@ class MachineMonitorManager:
                             response_time,
                             monitor.last_check,
                         )
+                    else:
+                        # Machine is still active - update last_seen and broadcast
+                        await self.ping_status_service.update_machine_last_seen(
+                            monitor.machine_id
+                        )
+
+                        # Broadcast regular status update via WebSocket
+                        await self._broadcast_status_update(
+                            monitor.machine_id,
+                            "active",
+                            is_alive,
+                            response_time,
+                            monitor.last_check,
+                        )
                 else:
                     # Failure - increment count and apply backoff
                     monitor.consecutive_failures += 1

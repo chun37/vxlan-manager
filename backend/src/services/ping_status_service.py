@@ -98,3 +98,20 @@ class PingStatusService:
                 """,
                 machine_id,
             )
+
+    async def update_machine_last_seen(self, machine_id: int) -> None:
+        """
+        Update machine's last_seen timestamp on successful ping.
+
+        Args:
+            machine_id: Machine ID
+        """
+        async with self.db_pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE machines
+                SET last_seen = CURRENT_TIMESTAMP
+                WHERE id = $1
+                """,
+                machine_id,
+            )

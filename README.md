@@ -2,6 +2,8 @@
 
 VXLANネットワーク内のマシンを自動登録・監視し、接続状態をリアルタイムでWeb管理画面に表示するシステム
 
+<img width="1698" height="1072" alt="image" src="https://github.com/user-attachments/assets/f5c82c6b-35d3-4758-b60f-bce0802b8c57" />
+
 ## 特徴
 
 - **自動登録**: マシンから簡単なスクリプト実行で自動登録

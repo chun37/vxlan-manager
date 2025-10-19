@@ -186,7 +186,82 @@ sudo systemctl enable vxlan-backend
 sudo systemctl status vxlan-backend
 ```
 
-#### 7. フロントエンド (Nginx)
+#### 7. Node.js (LTS) とpnpmのインストール
+
+```bash
+# Node.js LTS (20.x) をインストール
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# バージョン確認
+node --version  # v20.x以上
+
+# pnpmをグローバルインストール
+sudo npm install -g pnpm
+
+# pnpmバージョン確認
+pnpm --version  # v8.x以上
+```
+
+#### 8. フロントエンドのビルド
+
+```bash
+cd /opt/vxlan-manager/frontend
+sudo pnpm install
+sudo pnpm run build
+```
+
+standaloneビルドの完成には、静的アセットのコピーが必要です:
+
+```bash
+# 静的ファイルをstandaloneディレクトリにコピー
+sudo cp -r .next/static .next/standalone/.next/
+sudo cp -r public .next/standalone/
+```
+
+#### 9. フロントエンド用systemdサービスファイルの作成
+
+`/etc/systemd/system/vxlan-frontend.service`:
+
+```ini
+[Unit]
+Description=VXLAN Manager Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=vxlan
+Group=vxlan
+WorkingDirectory=/opt/vxlan-manager/frontend/.next/standalone
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=0.0.0.0
+ExecStart=/usr/bin/node server.js
+
+Restart=always
+RestartSec=10
+
+# Resource limits
+LimitNOFILE=10000
+MemoryLimit=512M
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### 10. フロントエンドサービス起動
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start vxlan-frontend
+sudo systemctl enable vxlan-frontend
+sudo systemctl status vxlan-frontend
+
+# フロントエンドの動作確認
+curl http://localhost:3000
+```
+
+#### 11. Nginxリバースプロキシの設定
 
 Nginxのインストール:
 
@@ -201,25 +276,35 @@ server {
     listen 80;
     server_name vxlan.example.com;
 
-    root /opt/vxlan-manager/frontend/src;
-    index index.html;
-
+    # Next.jsフロントエンドへのプロキシ
     location / {
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # APIバックエンドへのプロキシ
     location /api/ {
         proxy_pass http://localhost:8000/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # WebSocketプロキシ
     location /ws/ {
         proxy_pass http://localhost:8000/ws/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 86400;
     }
 }
@@ -331,7 +416,14 @@ sudo docker-compose logs -f
 
 **Systemd環境**:
 ```bash
+# バックエンドログ
 sudo journalctl -u vxlan-backend -f
+
+# フロントエンドログ
+sudo journalctl -u vxlan-frontend -f
+
+# 両方のログを同時に表示
+sudo journalctl -u vxlan-backend -u vxlan-frontend -f
 ```
 
 ### メトリクス監視
@@ -439,9 +531,22 @@ sudo docker-compose up -d --build
 ```bash
 cd /opt/vxlan-manager
 sudo git pull
+
+# バックエンドの更新
 cd backend
 sudo venv/bin/pip install -e .
 sudo systemctl restart vxlan-backend
+
+# フロントエンドの更新
+cd ../frontend
+sudo pnpm install
+sudo pnpm run build
+sudo cp -r .next/static .next/standalone/.next/
+sudo cp -r public .next/standalone/
+sudo systemctl restart vxlan-frontend
+
+# サービスの状態確認
+sudo systemctl status vxlan-backend vxlan-frontend
 ```
 
 ---

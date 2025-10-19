@@ -1,8 +1,9 @@
 """Machine Pydantic models."""
 from datetime import datetime
+from ipaddress import IPv4Address, IPv6Address
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 from ..validators import validate_ip_address, validate_mac_address
 
@@ -24,13 +25,20 @@ class MachineBase(BaseModel):
 class MachineCreate(MachineBase):
     """Model for creating a new machine."""
 
-    ip_address: str
+    ip_address: str | IPv4Address | IPv6Address
 
     @field_validator("ip_address")
     @classmethod
-    def validate_ip(cls, v: str) -> str:
+    def validate_ip(cls, v: str | IPv4Address | IPv6Address) -> str | IPv4Address | IPv6Address:
         """Validate IP address format."""
+        if isinstance(v, (IPv4Address, IPv6Address)):
+            return v
         return validate_ip_address(v)
+
+    @field_serializer("ip_address")
+    def serialize_ip(self, v: str | IPv4Address | IPv6Address) -> str:
+        """Serialize IP address to string for JSON output."""
+        return str(v)
 
 
 class MachineUpdate(BaseModel):
@@ -53,11 +61,16 @@ class MachineInDB(MachineBase):
     """Machine model as stored in database."""
 
     id: int
-    ip_address: str
+    ip_address: str | IPv4Address | IPv6Address
     status: str
     last_seen: datetime
     registered_at: datetime
     updated_at: datetime
+
+    @field_serializer("ip_address")
+    def serialize_ip(self, v: str | IPv4Address | IPv6Address) -> str:
+        """Serialize IP address to string for JSON output."""
+        return str(v)
 
     class Config:
         """Pydantic config."""

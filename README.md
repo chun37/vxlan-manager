@@ -2,7 +2,14 @@
 
 VXLANネットワーク内のマシンを自動登録・監視し、接続状態をリアルタイムでWeb管理画面に表示するシステム
 
+# images
+
+## connected
 <img width="1698" height="1072" alt="image" src="https://github.com/user-attachments/assets/f5c82c6b-35d3-4758-b60f-bce0802b8c57" />
+
+## disconnected
+<img width="1698" height="1072" alt="image" src="https://github.com/user-attachments/assets/374ea76f-d373-4f4b-8a88-f98ed0b021dc" />
+
 
 ## 特徴
 

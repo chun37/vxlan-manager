@@ -59,7 +59,7 @@ async def startup_event():
         rows = await conn.fetch("SELECT id, ip_address FROM machines")
         for row in rows:
             await monitor_service.monitor_manager.start_monitoring(
-                row["id"], row["ip_address"]
+                row["id"], str(row["ip_address"])  # Convert IPv4Address to string
             )
 
     logger.info(f"Started monitoring {len(rows)} machines")

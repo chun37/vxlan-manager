@@ -1,10 +1,13 @@
 """Ping utility functions using icmplib."""
 import asyncio
+import logging
 
 from icmplib import async_ping
 from icmplib.models import Host
 
 from ..config import settings
+
+logger = logging.getLogger(__name__)
 
 # Global semaphore for controlling concurrent ping operations
 PING_SEMAPHORE = asyncio.Semaphore(settings.max_parallel_pings)
@@ -29,7 +32,7 @@ async def ping_host(address: str, timeout: int | None = None) -> tuple[bool, flo
     try:
         async with PING_SEMAPHORE:
             host: Host = await async_ping(
-                address,
+                str(address),  # Convert to string in case IPv4Address object is passed
                 count=1,
                 timeout=timeout,
                 privileged=True,  # Requires CAP_NET_RAW capability
@@ -44,5 +47,5 @@ async def ping_host(address: str, timeout: int | None = None) -> tuple[bool, flo
 
     except Exception as e:
         # Log error and treat as down
-        print(f"Error pinging {address}: {e}")
+        logger.error(f"Error pinging {address}: {e}")
         return False, None

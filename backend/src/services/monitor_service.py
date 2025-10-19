@@ -1,5 +1,6 @@
 """Machine monitoring service with background tasks."""
 import asyncio
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict
@@ -12,6 +13,8 @@ from .backoff import calculate_backoff
 from .ping_status_service import PingStatusService
 from .ping_utils import ping_host
 from .websocket_service import ws_manager
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,7 +48,7 @@ class MachineMonitorManager:
             ip_address: Machine IP address
         """
         if machine_id in self.monitors:
-            print(f"Already monitoring machine {machine_id}")
+            logger.info(f"Already monitoring machine {machine_id}")
             return
 
         # Create monitor state
@@ -59,7 +62,7 @@ class MachineMonitorManager:
         task = asyncio.create_task(self._monitor_machine(monitor_state))
         self.monitors[machine_id] = task
 
-        print(f"Started monitoring {ip_address} (machine {machine_id})")
+        logger.info(f"Started monitoring {ip_address} (machine {machine_id})")
 
     async def stop_monitoring(self, machine_id: int) -> None:
         """
@@ -84,11 +87,11 @@ class MachineMonitorManager:
         del self.monitors[machine_id]
         del self.monitor_states[machine_id]
 
-        print(f"Stopped monitoring machine {machine_id}")
+        logger.info(f"Stopped monitoring machine {machine_id}")
 
     async def shutdown(self) -> None:
         """Gracefully shutdown all monitoring tasks."""
-        print(f"Shutting down {len(self.monitors)} monitor tasks...")
+        logger.info(f"Shutting down {len(self.monitors)} monitor tasks...")
 
         # Cancel all tasks
         for task in self.monitors.values():
@@ -103,7 +106,7 @@ class MachineMonitorManager:
 
         self.monitors.clear()
         self.monitor_states.clear()
-        print("All monitors shut down")
+        logger.info("All monitors shut down")
 
     def get_status(self, machine_id: int) -> MachineMonitor | None:
         """Get machine monitoring status."""
@@ -186,10 +189,10 @@ class MachineMonitorManager:
                 await asyncio.sleep(monitor.next_check_interval)
 
             except asyncio.CancelledError:
-                print(f"Monitor for {monitor.ip_address} cancelled")
+                logger.info(f"Monitor for {monitor.ip_address} cancelled")
                 break
             except Exception as e:
-                print(f"Error monitoring {monitor.ip_address}: {e}")
+                logger.error(f"Error monitoring {monitor.ip_address}: {e}")
                 await asyncio.sleep(60)  # Retry after 1 minute on error
 
     async def _broadcast_status_update(

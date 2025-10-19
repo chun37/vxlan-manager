@@ -60,7 +60,7 @@ async def upsert_machine(
         response_status = status.HTTP_201_CREATED if is_new else status.HTTP_200_OK
 
         # Convert to response model
-        response = MachineResponse(**machine.dict())
+        response = MachineResponse(**machine.model_dump())
 
         # FastAPI doesn't allow changing status code in response model
         # So we use a workaround with JSONResponse
@@ -68,7 +68,7 @@ async def upsert_machine(
 
         return JSONResponse(
             status_code=response_status,
-            content=response.dict(mode="json"),
+            content=response.model_dump(mode="json"),
         )
 
     except ValueError as e:
@@ -115,7 +115,7 @@ async def list_machines(
     machines, total = await service.get_all_machines(status_filter, limit, offset)
 
     return {
-        "machines": [m.dict(mode="json") for m in machines],
+        "machines": [m.model_dump(mode="json") for m in machines],
         "total": total,
         "limit": limit,
         "offset": offset,

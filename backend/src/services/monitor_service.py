@@ -218,7 +218,7 @@ class MachineMonitorManager:
             last_seen=last_seen,
         )
 
-        await ws_manager.broadcast(message.dict(mode="json"))
+        await ws_manager.broadcast(message.model_dump(mode="json"))
 
 
 # Global monitor manager instance (will be initialized in main.py)
